@@ -97,6 +97,29 @@ python run.py webcam
 python run.py detect -v path/to/image.jpg
 ```
 
+### Direct Integration
+
+If you want to integrate the liveness detection system directly into your project without using the API, you can use the integration module:
+
+```python
+# Import the integration functions
+from src.integration import detect_from_image, detect_from_file
+
+# Process an image file
+result = detect_from_file("path/to/image.jpg")
+print(f"Is Live: {result['is_live']}")
+print(f"Live Probability: {result['live_probability']}")
+print(f"Status: {result['status']}")  # "LIVE", "SPOOF", or "ERROR"
+
+# Process a numpy image array (RGB format)
+import cv2
+image = cv2.imread("path/to/image.jpg")
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+result = detect_from_image(image_rgb)
+
+# For more examples, see examples/integration_example.py
+```
+
 ### REST API
 
 Start the API server:
@@ -173,7 +196,7 @@ The API returns responses in the following format:
   "is_live": true,
   "live_probability": 0.9998519420623779,
   "spoof_probability": 0.00014802678197156638,
-  "message": "Real_face_detected",
+  "message": "Real face detected",
   "status": "LIVE"
 }
 ```
