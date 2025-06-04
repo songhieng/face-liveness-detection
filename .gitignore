@@ -26,8 +26,8 @@ ENV/
 .ipynb_checkpoints
 
 # Models (large files)
-# Uncomment if you want to exclude model files
-# models/*.pth.tar
+models/*.pth.tar
+!models/.gitkeep
 
 # Logs
 logs/

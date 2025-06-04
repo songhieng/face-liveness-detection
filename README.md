@@ -96,7 +96,7 @@ python run.py detect path/to/image.jpg
 # Process all images in a directory
 python run.py detect path/to/directory
 
-# Start webcam mode (displays video feed and saves frames to output/webcam_frames/)
+# Start webcam mode (displays video feed)
 python run.py webcam
 
 # Enable verbose logging
@@ -228,7 +228,7 @@ To set up a development environment:
 
 ## Model Information
 
-This system uses the AENet model from the CelebA-Spoof paper. The model architecture has been integrated directly into the project in `src/models/aenet.py` and the model checkpoint is stored in the `models` directory.
+This system uses a specialized neural network model for face liveness detection. The model architecture has been integrated directly into the project in `src/models/aenet.py` and the model checkpoint (MN3_antispoof.pth.tar) is stored in the `models` directory.
 
 ```
 @inproceedings{CelebA-Spoof,

@@ -8,7 +8,7 @@ from pathlib import Path
 # Project structure
 PROJECT_ROOT = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MODELS_DIR = PROJECT_ROOT / "models"
-MODEL_CHECKPOINT_PATH = MODELS_DIR / "ckpt_iter.pth.tar"
+MODEL_CHECKPOINT_PATH = MODELS_DIR / "MN3_antispoof.pth.tar"
 
 # Application settings
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
