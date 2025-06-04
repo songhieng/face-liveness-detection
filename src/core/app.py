@@ -6,13 +6,18 @@ import os
 import sys
 import cv2
 import logging
+import time
 from typing import Optional
+from datetime import datetime
 
 from src.core.detector import LivenessDetector
 from utils.logging import setup_logger
-from config.settings import LIVENESS_THRESHOLD
+from config.settings import LIVENESS_THRESHOLD, PROJECT_ROOT
 
 logger = setup_logger("liveness_app")
+
+# Ensure output directory exists
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "output", "webcam_frames")
 
 class LivenessDetectionApp:
     """Application for running liveness detection on images or webcam."""
@@ -20,6 +25,9 @@ class LivenessDetectionApp:
     def __init__(self):
         """Initialize the application."""
         self.detector = None
+        
+        # Ensure output directory exists
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     def initialize_detector(self) -> None:
         """Initialize the detector if it hasn't been initialized yet."""
@@ -95,8 +103,12 @@ class LivenessDetectionApp:
             logger.error(f"Error processing directory {directory_path}: {e}")
     
     def run_webcam(self) -> None:
-        """Run liveness detection on webcam feed."""
+        """Run liveness detection on webcam feed and display video."""
         logger.info("Starting webcam mode...")
+        
+        # Create output directory for saved frames
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        logger.info(f"Saving frames to {OUTPUT_DIR}")
         
         try:
             # Open webcam
@@ -105,7 +117,11 @@ class LivenessDetectionApp:
                 logger.error("Could not open webcam")
                 return
             
-            logger.info("Press 'q' to quit")
+            logger.info("Running liveness detection on webcam feed. Press 'q' to quit.")
+            
+            frame_count = 0
+            start_time = time.time()
+            save_time = time.time()
             
             while True:
                 # Read frame
@@ -138,10 +154,27 @@ class LivenessDetectionApp:
                 # Display the frame
                 cv2.imshow('Liveness Detection', frame)
                 
+                # Save the frame to a file every second
+                current_time = time.time()
+                if current_time - save_time >= 1.0:
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"{OUTPUT_DIR}/frame_{timestamp}_{result.replace(' ', '_')}_{live_prob:.4f}.jpg"
+                    cv2.imwrite(filename, frame)
+                    logger.info(f"Frame saved: {filename}")
+                    save_time = current_time
+                
+                # Print results to console
+                frame_count += 1
+                if frame_count % 10 == 0:  # Update console every 10 frames
+                    print(f"\rLiveness: {result} - Probability: {live_prob:.4f}", end="")
+                    sys.stdout.flush()
+                
                 # Check for quit key
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
                 
+        except KeyboardInterrupt:
+            logger.info("\nWebcam mode stopped by user")
         except Exception as e:
             logger.error(f"Error in webcam mode: {e}")
         
@@ -150,6 +183,7 @@ class LivenessDetectionApp:
             if 'cap' in locals() and cap.isOpened():
                 cap.release()
             cv2.destroyAllWindows()
+            print("\nWebcam session ended. Check the output directory for saved frames.")
     
     def run(self, path: Optional[str] = None) -> None:
         """

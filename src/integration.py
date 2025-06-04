@@ -6,19 +6,27 @@ directly in other projects without needing to use the API.
 """
 
 import os
+import sys
 import numpy as np
 import cv2
 from typing import Dict, Union, List, Tuple, Optional
 from PIL import Image
 import base64
+import time
+from datetime import datetime
+from pathlib import Path
 
 from src.core.detector import LivenessDetector
 from utils.logging import setup_logger
+from config.settings import PROJECT_ROOT
 
 logger = setup_logger("liveness_integration")
 
 # Singleton detector instance
 _detector = None
+
+# Ensure output directory exists
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "output", "webcam_frames")
 
 def get_detector(model_path: Optional[str] = None, device: Optional[str] = None) -> LivenessDetector:
     """
@@ -171,14 +179,15 @@ def detect_from_batch(file_paths: List[str], threshold: float = 0.5) -> List[Dic
     """
     return [detect_from_file(file_path, threshold) for file_path in file_paths]
 
-def detect_from_webcam(camera_id: int = 0, threshold: float = 0.5, display: bool = True) -> None:
+def detect_from_webcam(camera_id: int = 0, threshold: float = 0.5, display: bool = True, save_frames: bool = True) -> None:
     """
-    Run liveness detection on webcam feed.
+    Run liveness detection on webcam feed with display and optional frame saving.
     
     Args:
         camera_id: Camera device ID (default: 0)
         threshold: Threshold for liveness detection (default: 0.5)
-        display: Whether to display the webcam feed with results (default: True)
+        display: Whether to display the webcam feed (default: True)
+        save_frames: Whether to save frames with results (default: True)
         
     Returns:
         None: This function runs until user presses 'q' to quit
@@ -187,6 +196,11 @@ def detect_from_webcam(camera_id: int = 0, threshold: float = 0.5, display: bool
         # Initialize detector
         detector = get_detector()
         
+        # Create output directory for saved frames
+        if save_frames:
+            os.makedirs(OUTPUT_DIR, exist_ok=True)
+            logger.info(f"Saving frames to {OUTPUT_DIR}")
+        
         # Open webcam
         cap = cv2.VideoCapture(camera_id)
         if not cap.isOpened():
@@ -194,6 +208,9 @@ def detect_from_webcam(camera_id: int = 0, threshold: float = 0.5, display: bool
             return
         
         logger.info("Starting webcam mode. Press 'q' to quit.")
+        
+        frame_count = 0
+        save_time = time.time()
         
         while True:
             # Read frame
@@ -208,27 +225,48 @@ def detect_from_webcam(camera_id: int = 0, threshold: float = 0.5, display: bool
             # Detect liveness
             result = detect_from_image(rgb_frame, threshold)
             
-            # Display results if needed
+            # Process results
+            color = (0, 255, 0) if result["is_live"] else (0, 0, 255)
+            cv2.putText(
+                frame,
+                f"{result['status']} - {result['live_probability']:.4f}",
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                color,
+                2
+            )
+            
+            # Display the frame if requested
             if display:
-                # Overlay text on frame
-                color = (0, 255, 0) if result["is_live"] else (0, 0, 255)
-                cv2.putText(
-                    frame,
-                    f"{result['status']} - {result['live_probability']:.4f}",
-                    (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7,
-                    color,
-                    2
-                )
-                
-                # Display the frame
                 cv2.imshow('Liveness Detection', frame)
                 
                 # Check for quit key
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
             
+            # Save frames if requested
+            if save_frames:
+                current_time = time.time()
+                if current_time - save_time >= 1.0:  # Save one frame per second
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"{OUTPUT_DIR}/frame_{timestamp}_{result['status']}_{result['live_probability']:.4f}.jpg"
+                    cv2.imwrite(filename, frame)
+                    logger.info(f"Frame saved: {filename}")
+                    save_time = current_time
+            
+            # Print results to console
+            frame_count += 1
+            if frame_count % 10 == 0:  # Update console every 10 frames
+                print(f"\rLiveness: {result['status']} - Probability: {result['live_probability']:.4f}", end="")
+                sys.stdout.flush()
+            
+            # If not displaying, add a short delay to prevent high CPU usage
+            if not display:
+                time.sleep(0.05)
+            
+    except KeyboardInterrupt:
+        logger.info("\nWebcam mode stopped by user")
     except Exception as e:
         logger.error(f"Error in webcam mode: {e}")
     
@@ -237,4 +275,5 @@ def detect_from_webcam(camera_id: int = 0, threshold: float = 0.5, display: bool
         if 'cap' in locals() and cap.isOpened():
             cap.release()
         if display:
-            cv2.destroyAllWindows() 
+            cv2.destroyAllWindows()
+        print("\nWebcam session ended. Check the output directory for saved frames.") 

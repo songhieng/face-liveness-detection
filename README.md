@@ -41,7 +41,7 @@ A robust face liveness detection system that can identify real (live) faces from
 
 - Python 3.7+
 - PyTorch 1.7.0+
-- OpenCV 4.5.0+
+- OpenCV 4.5.0+ (with GUI support for webcam display)
 - FastAPI (for API mode)
 - See `requirements.txt` for full dependencies
 
@@ -58,6 +58,12 @@ A robust face liveness detection system that can identify real (live) faces from
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
+   ```
+
+   Note: This project uses the full version of OpenCV with GUI support. If you need to run it in a headless environment (like a server without a display), you can install the headless version:
+   ```bash
+   pip uninstall opencv-python
+   pip install opencv-python-headless
    ```
 
 3. Ensure the model file is in the correct location:
@@ -90,7 +96,7 @@ python run.py detect path/to/image.jpg
 # Process all images in a directory
 python run.py detect path/to/directory
 
-# Start webcam mode
+# Start webcam mode (displays video feed and saves frames to output/webcam_frames/)
 python run.py webcam
 
 # Enable verbose logging

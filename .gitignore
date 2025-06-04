@@ -35,4 +35,8 @@ logs/
 
 # OS specific
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Output directories
+output/webcam_frames/*
+!output/webcam_frames/.gitkeep 
